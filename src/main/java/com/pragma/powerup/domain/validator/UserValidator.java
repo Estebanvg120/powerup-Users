@@ -25,10 +25,6 @@ public class UserValidator {
         return phone.length() <= 13 && phone.matches("^\\+?\\d{1,13}$");
     }
 
-    private boolean isNumeric(String document) {
-        return document.matches("\\d+");
-    }
-
     private boolean isAdult(LocalDate birthDate) {
         return Period.between(birthDate, LocalDate.now()).getYears() >= 18;
     }

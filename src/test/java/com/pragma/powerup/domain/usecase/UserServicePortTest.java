@@ -1,6 +1,5 @@
 package com.pragma.powerup.domain.usecase;
 
-import com.pragma.powerup.domain.api.IUserServicePort;
 import com.pragma.powerup.domain.model.UserModel;
 import com.pragma.powerup.domain.spi.IUserRepositoryPort;
 import com.pragma.powerup.domain.validator.UserValidator;
