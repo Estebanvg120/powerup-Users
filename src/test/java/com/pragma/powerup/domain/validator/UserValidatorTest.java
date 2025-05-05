@@ -1,6 +1,6 @@
 package com.pragma.powerup.domain.validator;
 
-import com.pragma.powerup.domain.exception.DomainException;
+import com.pragma.powerup.domain.exception.IncorrectPasswordException;
 import com.pragma.powerup.domain.model.UserModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,37 +19,39 @@ class UserValidatorTest {
     }
 
     @Test
-    void validateUser_ShouldNotThrow_WhenUserIsValid() {
+    void validateUser_shouldPass_whenValidUser() {
         // Arrange
-        UserModel validUser = new UserModel();
-        validUser.setPhone("+1234567890");
-        validUser.setBirthdate(LocalDate.now().minusYears(20)); // Tiene 20 años
+        UserModel user = new UserModel();
+        user.setPhone("+573001112233");
+        user.setBirthdate(LocalDate.of(1995, 5, 5));
 
         // Act & Assert
-        assertDoesNotThrow(() -> userValidator.validateUser(validUser));
+        assertDoesNotThrow(() -> userValidator.validateUser(user));
     }
 
     @Test
-    void validateUser_ShouldThrow_WhenPhoneIsInvalid() {
+    void validateUser_shouldThrowException_whenInvalidPhone() {
         // Arrange
-        UserModel invalidPhoneUser = new UserModel();
-        invalidPhoneUser.setPhone("123-abc"); // Teléfono inválido
-        invalidPhoneUser.setBirthdate(LocalDate.now().minusYears(25));
+        UserModel user = new UserModel();
+        user.setPhone("123abc");  // Invalid phone
+        user.setBirthdate(LocalDate.of(1990, 1, 1));
 
         // Act & Assert
-        DomainException exception = assertThrows(DomainException.class, () -> userValidator.validateUser(invalidPhoneUser));
+        IncorrectPasswordException exception = assertThrows(IncorrectPasswordException.class,
+                () -> userValidator.validateUser(user));
         assertEquals("Número de teléfono inválido.", exception.getMessage());
     }
 
     @Test
-    void validateUser_ShouldThrow_WhenUserIsMinor() {
+    void validateUser_shouldThrowException_whenUnderage() {
         // Arrange
-        UserModel minorUser = new UserModel();
-        minorUser.setPhone("+1234567890");
-        minorUser.setBirthdate(LocalDate.now().minusYears(17)); // 17 años, es menor de edad
+        UserModel user = new UserModel();
+        user.setPhone("+573001112233");
+        user.setBirthdate(LocalDate.now().minusYears(17));  // Not an adult
 
         // Act & Assert
-        DomainException exception = assertThrows(DomainException.class, () -> userValidator.validateUser(minorUser));
+        IncorrectPasswordException exception = assertThrows(IncorrectPasswordException.class,
+                () -> userValidator.validateUser(user));
         assertEquals("Debe ser mayor de edad.", exception.getMessage());
     }
 }

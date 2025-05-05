@@ -7,6 +7,10 @@ spring:
     username: root
     password: EsvargaR.102
 
+jwt:
+  secret: "ZXN0YSBlcyBtaSBjbGF2ZSBwYXJhIGVsIHByb3llY3RvIGRlIHByYWdtYQ=="
+  expiration: 3600000
+
   jpa:
     hibernate:
       ddl-auto: update

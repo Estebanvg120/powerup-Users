@@ -1,84 +1,92 @@
 package com.pragma.powerup.infrastructure.input.rest;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pragma.powerup.application.dto.UserRequestDto;
 import com.pragma.powerup.application.dto.UserResponseDto;
+import com.pragma.powerup.application.handler.IUserHandler;
+import com.pragma.powerup.application.mapper.usermapper.IUserResponseMapper;
+import com.pragma.powerup.domain.exception.NoDataFoundException;
 import com.pragma.powerup.domain.model.UserModel;
-import com.pragma.powerup.domain.usecase.UserServicePort;
+import com.pragma.powerup.infrastructure.input.rest.privateroutes.users.UserController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.ResponseEntity;
 
-import java.time.LocalDate;
+import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-@WebMvcTest(UserController.class)
 class UserControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Mock
+    private IUserHandler userHandler;
 
-    @MockBean
-    private UserServicePort userService;
+    @Mock
+    private IUserResponseMapper responseMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @InjectMocks
+    private UserController userController;
 
     private UserRequestDto userRequestDto;
-    private UserModel createdUser;
+    private UserModel userModel;
+    private UserResponseDto userResponseDto;
 
     @BeforeEach
     void setUp() {
-        userRequestDto = new UserRequestDto();
-        userRequestDto.setName("Juan");
-        userRequestDto.setLastname("Pérez");
-        userRequestDto.setDocument(123456789);
-        userRequestDto.setPhone("+1234567890");
-        userRequestDto.setBirthdate(LocalDate.of(2000, 1, 1));
-        userRequestDto.setEmail("juan@example.com");
-        userRequestDto.setPassword("password123");
-        userRequestDto.setRole("USER");
+        MockitoAnnotations.openMocks(this);
 
-        createdUser = new UserModel(
-                1L,
-                userRequestDto.getName(),
-                userRequestDto.getLastname(),
-                userRequestDto.getDocument(),
-                userRequestDto.getPhone(),
-                userRequestDto.getBirthdate(),
-                userRequestDto.getEmail(),
-                userRequestDto.getPassword(),
-                userRequestDto.getRole()
-        );
+        userRequestDto = new UserRequestDto();
+        userModel = new UserModel();
+        userResponseDto = new UserResponseDto();
     }
 
     @Test
-    void createUser_ShouldReturnCreatedUser() throws Exception {
+    void testCreateUser_ReturnsCreatedResponse() {
         // Arrange
-        Mockito.when(userService.createUser(any(UserModel.class))).thenReturn(createdUser);
+        when(userHandler.createUser(userRequestDto)).thenReturn(userModel);
+        when(responseMapper.toResponse(userModel)).thenReturn(userResponseDto);
+
+        // Act
+        ResponseEntity<UserResponseDto> response = userController.createUser(userRequestDto);
+
+        // Assert
+        assertEquals(201, response.getStatusCodeValue());
+        assertEquals(userResponseDto, response.getBody());
+
+        verify(userHandler, times(1)).createUser(userRequestDto);
+        verify(responseMapper, times(1)).toResponse(userModel);
+    }
+
+    @Test
+    void testGetUserByID_UserFound_ReturnsCreatedResponse() {
+        // Arrange
+        long userId = 1L;
+        when(userHandler.getUserByID(userId)).thenReturn(Optional.of(userModel));
+        when(responseMapper.toResponse(userModel)).thenReturn(userResponseDto);
+
+        // Act
+        ResponseEntity<UserResponseDto> response = userController.getUserByID(userId);
+
+        // Assert
+        assertEquals(201, response.getStatusCodeValue());
+        assertEquals(userResponseDto, response.getBody());
+
+        verify(userHandler).getUserByID(userId);
+        verify(responseMapper).toResponse(userModel);
+    }
+
+    @Test
+    void testGetUserByID_UserNotFound_ThrowsException() {
+        // Arrange
+        long userId = 999L;
+        when(userHandler.getUserByID(userId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        mockMvc.perform(post("/api/v1/users/createUser")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(userRequestDto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.name").value("Juan"))
-                .andExpect(jsonPath("$.lastname").value("Pérez"))
-                .andExpect(jsonPath("$.document").value("123456789"))
-                .andExpect(jsonPath("$.phone").value("+1234567890"))
-                .andExpect(jsonPath("$.email").value("juan@example.com"))
-                .andExpect(jsonPath("$.password").value("password123"))
-                .andExpect(jsonPath("$.role").value("USER"));
-
-        Mockito.verify(userService, Mockito.times(1)).createUser(any(UserModel.class));
+        assertThrows(NoDataFoundException.class, () -> userController.getUserByID(userId));
+        verify(userHandler).getUserByID(userId);
+        verify(responseMapper, never()).toResponse(any());
     }
 }

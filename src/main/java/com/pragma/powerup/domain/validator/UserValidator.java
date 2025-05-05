@@ -1,6 +1,6 @@
 package com.pragma.powerup.domain.validator;
 
-import com.pragma.powerup.domain.exception.DomainException;
+import com.pragma.powerup.domain.exception.IncorrectPasswordException;
 import com.pragma.powerup.domain.model.UserModel;
 import org.springframework.stereotype.Component;
 
@@ -13,11 +13,11 @@ public class UserValidator {
     public void validateUser(UserModel userModel) {
 
         if (!isValidPhone(userModel.getPhone())) {
-            throw new DomainException("Número de teléfono inválido.");
+            throw new IncorrectPasswordException("Número de teléfono inválido.");
         }
 
         if (!isAdult(userModel.getBirthdate())) {
-            throw new DomainException("Debe ser mayor de edad.");
+            throw new IncorrectPasswordException("Debe ser mayor de edad.");
         }
     }
 
