@@ -10,6 +10,9 @@ public class LoginModel {
         this.password = password;
     }
 
+    public LoginModel() {
+    }
+
     public String getEmail() {
         return email;
     }

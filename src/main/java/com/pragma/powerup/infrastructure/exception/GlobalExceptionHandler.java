@@ -2,7 +2,7 @@ package com.pragma.powerup.infrastructure.exception;
 
 import com.pragma.powerup.domain.exception.AlreadyUserExistException;
 import com.pragma.powerup.domain.exception.IncorrectPasswordException;
-import com.pragma.powerup.domain.exception.InvalidRole;
+import com.pragma.powerup.domain.exception.InvalidRoleException;
 import com.pragma.powerup.domain.exception.NoDataFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,8 +40,8 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage(), request);
     }
 
-    @ExceptionHandler(InvalidRole.class)
-    public ResponseEntity<GlobalExceptionResponse> handleJwtError(InvalidRole ex, WebRequest request) {
+    @ExceptionHandler(InvalidRoleException.class)
+    public ResponseEntity<GlobalExceptionResponse> handleJwtError(InvalidRoleException ex, WebRequest request) {
         return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request);
     }
 

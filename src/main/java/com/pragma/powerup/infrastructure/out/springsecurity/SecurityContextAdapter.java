@@ -19,10 +19,6 @@ public class SecurityContextAdapter implements ISecurityContextPort {
         return passwordEncoder.encode(password);
     }
 
-    public String getAuthenticatedUsername() {
-        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-    }
 
     public String getAuthenticatedRole() {
         return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
