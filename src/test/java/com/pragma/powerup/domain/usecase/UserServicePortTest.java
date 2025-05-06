@@ -3,12 +3,14 @@ package com.pragma.powerup.domain.usecase;
 import com.pragma.powerup.domain.exception.AlreadyUserExistException;
 import com.pragma.powerup.domain.exception.NoDataFoundException;
 import com.pragma.powerup.domain.model.UserModel;
+import com.pragma.powerup.domain.spi.IJwtPort;
 import com.pragma.powerup.domain.spi.ISecurityContextPort;
-import com.pragma.powerup.domain.spi.IUserRepositoryPort;
 import com.pragma.powerup.domain.validator.UserRoleValidator;
 import com.pragma.powerup.domain.validator.UserValidator;
+import com.pragma.powerup.domain.spi.IUserRepositoryPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.*;
 
 import java.util.Optional;
 
@@ -17,82 +19,87 @@ import static org.mockito.Mockito.*;
 
 class UserServicePortTest {
 
+    @Mock
     private IUserRepositoryPort userRepositoryPort;
+
+    @Mock
     private UserValidator userValidator;
+
+    @Mock
     private ISecurityContextPort securityContextPort;
+
+    @Mock
     private UserRoleValidator userRoleValidator;
+
+    @Mock
+    private IJwtPort jwtPort;
+
     private UserServicePort userServicePort;
 
     @BeforeEach
     void setUp() {
-        userRepositoryPort = mock(IUserRepositoryPort.class);
-        userValidator = mock(UserValidator.class);
-        securityContextPort = mock(ISecurityContextPort.class);
-        userRoleValidator = mock(UserRoleValidator.class);
-        userServicePort = new UserServicePort(userRepositoryPort, userValidator, securityContextPort, userRoleValidator);
+        MockitoAnnotations.openMocks(this);
+        userServicePort = new UserServicePort(userRepositoryPort, userValidator, securityContextPort, userRoleValidator, jwtPort);
     }
 
     @Test
-    void createUser_shouldSaveUser_whenValid() {
+    void testCreateUser_UserAlreadyExists_ThrowsAlreadyUserExistException() {
         // Arrange
-        UserModel user = new UserModel();
-        user.setEmail("test@example.com");
-        user.setPassword("1234");
-        user.setRole("CLIENT");
-
-        when(securityContextPort.getAuthenticatedRole()).thenReturn("ADMIN");
-        when(securityContextPort.encryptedPassword("1234")).thenReturn("encrypted1234");
-        when(userRepositoryPort.findByEmail("test@example.com")).thenReturn(Optional.empty());
-        when(userRepositoryPort.save(any(UserModel.class))).thenReturn(user);
-
-        // Act
-        UserModel result = userServicePort.createUser(user);
-
-        // Assert
-        assertEquals("test@example.com", result.getEmail());
-        verify(userValidator).validateUser(user);
-        verify(userRoleValidator).validateRole("ADMIN", "CLIENT");
-    }
-
-    @Test
-    void createUser_shouldThrowException_whenUserAlreadyExists() {
-        // Arrange
-        UserModel user = new UserModel();
-        user.setEmail("existing@example.com");
-        user.setPassword("pass");
-        user.setRole("CLIENT");
-
-        when(securityContextPort.getAuthenticatedRole()).thenReturn("ADMIN");
-        when(userRepositoryPort.findByEmail("existing@example.com"))
-                .thenReturn(Optional.of(user));
+        UserModel userModel = new UserModel();
+        userModel.setEmail("test@example.com");
+        when(userRepositoryPort.findByEmail(userModel.getEmail())).thenReturn(Optional.of(userModel));
 
         // Act & Assert
-        assertThrows(AlreadyUserExistException.class, () -> userServicePort.createUser(user));
+        AlreadyUserExistException exception = assertThrows(AlreadyUserExistException.class, () -> userServicePort.createUser(userModel));
+        assertEquals("EL usuario ya existe", exception.getMessage());
     }
 
     @Test
-    void getUserById_shouldReturnUser_whenExists() {
+    void testCreateUser_SuccessfullyCreatesUser() {
         // Arrange
-        UserModel user = new UserModel();
-        user.setId(1L);
-        user.setEmail("user@example.com");
-
-        when(userRepositoryPort.findById(1L)).thenReturn(Optional.of(user));
+        UserModel userModel = new UserModel();
+        userModel.setEmail("test@example.com");
+        userModel.setRole("CLIENTE");
+        when(userRepositoryPort.findByEmail(userModel.getEmail())).thenReturn(Optional.empty());
+        when(securityContextPort.getToken()).thenReturn("mockedToken");
+        when(jwtPort.getRoleFromToken("mockedToken")).thenReturn("ADMINISTRADOR");
+        when(securityContextPort.encryptedPassword(userModel.getPassword())).thenReturn("encryptedPassword");
+        when(userRepositoryPort.save(userModel)).thenReturn(userModel);
 
         // Act
-        Optional<UserModel> result = userServicePort.getUserById(1L);
+        UserModel createdUser = userServicePort.createUser(userModel);
 
         // Assert
-        assertTrue(result.isPresent());
-        assertEquals("user@example.com", result.get().getEmail());
+        assertEquals(userModel, createdUser);
+        verify(userRoleValidator).validateRole("ADMINISTRADOR", userModel.getRole());
+        verify(userValidator).validateUser(userModel);
+        verify(userRepositoryPort).save(userModel);
     }
 
     @Test
-    void getUserById_shouldThrowException_whenNotFound() {
+    void testGetUserById_UserNotFound_ThrowsNoDataFoundException() {
         // Arrange
-        when(userRepositoryPort.findById(2L)).thenReturn(Optional.empty());
+        long userId = 1L;
+        when(userRepositoryPort.findById(userId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(NoDataFoundException.class, () -> userServicePort.getUserById(2L));
+        NoDataFoundException exception = assertThrows(NoDataFoundException.class, () -> userServicePort.getUserById(userId));
+        assertEquals("Usuario no existe", exception.getMessage());
+    }
+
+    @Test
+    void testGetUserById_SuccessfullyReturnsUser() {
+        // Arrange
+        long userId = 1L;
+        UserModel userModel = new UserModel();
+        userModel.setId(userId);
+        when(userRepositoryPort.findById(userId)).thenReturn(Optional.of(userModel));
+
+        // Act
+        Optional<UserModel> foundUser = userServicePort.getUserById(userId);
+
+        // Assert
+        assertTrue(foundUser.isPresent());
+        assertEquals(userModel, foundUser.get());
     }
 }

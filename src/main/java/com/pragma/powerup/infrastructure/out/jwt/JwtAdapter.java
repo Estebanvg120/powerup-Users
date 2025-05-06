@@ -26,4 +26,9 @@ public class JwtAdapter implements IJwtPort {
     public Boolean validatePassword(String loginPassword, String userPassword) {
         return passwordEncoder.matches(loginPassword, userPassword);
     }
+
+    @Override
+    public String getRoleFromToken(String token) {
+        return jwtProvider.getRoleFromToken(token);
+    }
 }

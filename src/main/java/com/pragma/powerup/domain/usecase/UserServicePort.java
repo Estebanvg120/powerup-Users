@@ -2,6 +2,7 @@ package com.pragma.powerup.domain.usecase;
 
 import com.pragma.powerup.domain.exception.AlreadyUserExistException;
 import com.pragma.powerup.domain.exception.NoDataFoundException;
+import com.pragma.powerup.domain.spi.IJwtPort;
 import com.pragma.powerup.domain.spi.ISecurityContextPort;
 import com.pragma.powerup.domain.validator.UserRoleValidator;
 import com.pragma.powerup.domain.validator.UserValidator;
@@ -18,17 +19,20 @@ public class UserServicePort implements IUserServicePort {
     private final UserValidator userValidator;
     private final ISecurityContextPort securityContextPort;
     private final UserRoleValidator userRoleValidator;
+    private final IJwtPort jwtPort;
 
-    public UserServicePort(IUserRepositoryPort userRepositoryPort, UserValidator userValidator, ISecurityContextPort securityContextPort, UserRoleValidator userRoleValidator) {
+    public UserServicePort(IUserRepositoryPort userRepositoryPort, UserValidator userValidator, ISecurityContextPort securityContextPort, UserRoleValidator userRoleValidator, IJwtPort jwtPort) {
         this.userRepositoryPort = userRepositoryPort;
         this.userValidator = userValidator;
         this.securityContextPort = securityContextPort;
         this.userRoleValidator = userRoleValidator;
+        this.jwtPort = jwtPort;
     }
 
     @Override
     public UserModel createUser(UserModel userModel) {
-        String authenticatedRole = securityContextPort.getAuthenticatedRole();
+        String token = securityContextPort.getToken();
+        String authenticatedRole = jwtPort.getRoleFromToken(token);
         userRoleValidator.validateRole(authenticatedRole, userModel.getRole());
         userValidator.validateUser(userModel);
         String passEncrypted = securityContextPort.encryptedPassword(userModel.getPassword());
